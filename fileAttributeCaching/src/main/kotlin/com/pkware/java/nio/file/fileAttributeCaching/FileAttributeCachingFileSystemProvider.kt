@@ -1,13 +1,25 @@
 package com.pkware.java.nio.file.fileAttributeCaching
 
-import com.pkware.java.nio.file.forwarding.ForwardingFileSystemProvider
+import com.google.auto.service.AutoService
 import java.io.IOException
+import java.net.URI
+import java.nio.channels.SeekableByteChannel
+import java.nio.file.AccessMode
+import java.nio.file.CopyOption
+import java.nio.file.DirectoryStream
+import java.nio.file.FileStore
+import java.nio.file.FileSystem
+import java.nio.file.FileSystemNotFoundException
+import java.nio.file.Files
 import java.nio.file.LinkOption
+import java.nio.file.OpenOption
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributeView
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.attribute.DosFileAttributeView
 import java.nio.file.attribute.DosFileAttributes
+import java.nio.file.attribute.FileAttribute
+import java.nio.file.attribute.FileAttributeView
 import java.nio.file.attribute.PosixFileAttributeView
 import java.nio.file.attribute.PosixFileAttributes
 import java.nio.file.spi.FileSystemProvider
@@ -20,12 +32,77 @@ import java.nio.file.spi.FileSystemProvider
  *
  * @param delegate The [FileSystemProvider] to forward calls to.
  */
-class FileAttributeCachingFileSystemProvider(private val delegate: FileSystemProvider) :
-    ForwardingFileSystemProvider(delegate) {
+@AutoService(FileSystemProvider::class)
+internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
 
-    // TODO not sure if needed yet
-    // override fun isSameFile(path: Path, path2: Path): Boolean = delegate.isSameFile(path, path2)
-    // override fun isHidden(path: Path): Boolean = delegate.isHidden(path)
+    private val fileSystems = mutableMapOf<URI, FileSystem>()
+
+    override fun getScheme(): String = "cache"
+
+    override fun newFileSystem(uri: URI, env: MutableMap<String, *>): FileSystem =
+        fileSystems.computeIfAbsent(uri) {
+            FileAttributeCachingFileSystem(
+                env.getValue("filesystem") as FileSystem,
+                this
+            )
+        }
+
+    override fun getFileSystem(uri: URI): FileSystem =
+        fileSystems[uri] ?: throw FileSystemNotFoundException("Filesystem for $uri not found")
+
+    override fun getPath(uri: URI): Path {
+        TODO("Not yet implemented")
+    }
+
+    override fun newByteChannel(
+        path: Path,
+        options: MutableSet<out OpenOption>?,
+        vararg attrs: FileAttribute<*>?
+    ): SeekableByteChannel = Files.newByteChannel(path.asCachingPath().delegate, options, *attrs)
+
+    override fun newDirectoryStream(dir: Path?, filter: DirectoryStream.Filter<in Path>?): DirectoryStream<Path> {
+        TODO("Not yet implemented")
+    }
+
+    override fun createDirectory(dir: Path?, vararg attrs: FileAttribute<*>?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun delete(path: Path?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun copy(source: Path?, target: Path?, vararg options: CopyOption?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun move(source: Path?, target: Path?, vararg options: CopyOption?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun isSameFile(path: Path?, path2: Path?): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun isHidden(path: Path?): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun getFileStore(path: Path?): FileStore {
+        TODO("Not yet implemented")
+    }
+
+    override fun checkAccess(path: Path?, vararg modes: AccessMode?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun <V : FileAttributeView?> getFileAttributeView(
+        path: Path?,
+        type: Class<V>?,
+        vararg options: LinkOption?
+    ): V {
+        TODO("Not yet implemented")
+    }
 
     /**
      * Read file attributes specified by the attribute `Class` [type] from the incoming [path]. If the returned
@@ -50,8 +127,10 @@ class FileAttributeCachingFileSystemProvider(private val delegate: FileSystemPro
         type: Class<A>,
         vararg options: LinkOption
     ): A = if (path is FileAttributeCachingPath) {
+        val delegate = path.delegate.fileSystem.provider()
+
         val attributes = path.getAllAttributesMatchingClass(type) {
-            delegate.readAttributes(path, type, *options)
+            delegate.readAttributes(path.delegate, type, *options)
         } ?: throw IOException("Could not read attributes from delegate filesystem.")
         attributes
     } else {
@@ -102,6 +181,7 @@ class FileAttributeCachingFileSystemProvider(private val delegate: FileSystemPro
      */
     @Throws(IOException::class, UnsupportedOperationException::class)
     override fun setAttribute(path: Path, attribute: String, value: Any?, vararg options: LinkOption) {
+        val delegate = path.asCachingPath().delegate.fileSystem.provider()
 
         // Always set delegate attribute first with real file IO
         delegate.setAttribute(path, attribute, value, *options)
@@ -132,6 +212,8 @@ class FileAttributeCachingFileSystemProvider(private val delegate: FileSystemPro
      */
     @Throws(IOException::class)
     private fun getAttributesClass(path: Path, attributes: String): BasicFileAttributes? {
+        val delegate = path.asCachingPath().fileSystem.provider()
+
         val attributeView: Any = if (attributes.startsWith("dos")) {
             delegate.getFileAttributeView(path, DosFileAttributeView::class.java)
         } else if (attributes.startsWith("posix")) {
@@ -148,28 +230,32 @@ class FileAttributeCachingFileSystemProvider(private val delegate: FileSystemPro
         }
     }
 
-    /**
-     * Set all attributes for a given [path].
-     *
-     * @param path The [Path] to set all attributes for. It must be a [FileAttributeCachingPath] otherwise an
-     * [IOException] will be thrown.
-     * @throws IOException if an I/O error occurs while accessing the various attribute views associated with the
-     * [path].
-     */
-    @Throws(IOException::class)
-    fun initializeCacheForPath(path: Path) {
-        // set all attributes here in 3 io access calls (to get the views)
-        if (path is FileAttributeCachingPath) {
-            val dosAttributeView = delegate.getFileAttributeView(path, DosFileAttributeView::class.java)
-            path.setAttributeByName("dos:*", dosAttributeView.readAttributes())
+//    /**
+//     * Set all attributes for a given [path].
+//     *
+//     * @param path The [Path] to set all attributes for. It must be a [FileAttributeCachingPath] otherwise an
+//     * [IOException] will be thrown.
+//     * @throws IOException if an I/O error occurs while accessing the various attribute views associated with the
+//     * [path].
+//     */
+//    @Throws(IOException::class)
+//    fun initializeCacheForPath(path: Path) {
+//        // set all attributes here in 3 io access calls (to get the views)
+//        if (path is FileAttributeCachingPath) {
+//            val dosAttributeView = delegate.getFileAttributeView(path, DosFileAttributeView::class.java)
+//            path.setAttributeByName("dos:*", dosAttributeView.readAttributes())
+//
+//            val posixAttributeView = delegate.getFileAttributeView(path, PosixFileAttributeView::class.java)
+//            path.setAttributeByName("posix:*", posixAttributeView.readAttributes())
+//
+//            val basicAttributeView = delegate.getFileAttributeView(path, BasicFileAttributeView::class.java)
+//            path.setAttributeByName("*", basicAttributeView.readAttributes())
+//        } else {
+//            throw IOException("Path was not a FileAttributeCachingPath, could not set attribute cache.")
+//        }
+//    }
+}
 
-            val posixAttributeView = delegate.getFileAttributeView(path, PosixFileAttributeView::class.java)
-            path.setAttributeByName("posix:*", posixAttributeView.readAttributes())
-
-            val basicAttributeView = delegate.getFileAttributeView(path, BasicFileAttributeView::class.java)
-            path.setAttributeByName("*", basicAttributeView.readAttributes())
-        } else {
-            throw IOException("Path was not a FileAttributeCachingPath, could not set attribute cache.")
-        }
-    }
+private fun Path.asCachingPath(): FileAttributeCachingPath {
+    return this as FileAttributeCachingPath
 }

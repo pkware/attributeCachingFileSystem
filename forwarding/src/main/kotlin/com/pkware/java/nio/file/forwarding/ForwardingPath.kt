@@ -14,10 +14,10 @@ import java.nio.file.WatchService
  *
  * @param delegate The [Path] to forward calls to.
  */
-abstract class ForwardingPath(val delegate: Path) : Path {
+public abstract class ForwardingPath(private val delegate: Path) : Path {
     override fun endsWith(other: String): Boolean = delegate.endsWith(other)
 
-    override fun register(watcher: WatchService?, vararg events: WatchEvent.Kind<*>?): WatchKey =
+    override fun register(watcher: WatchService, vararg events: WatchEvent.Kind<*>?): WatchKey =
         delegate.register(watcher, events)
 
     override fun startsWith(other: String): Boolean = delegate.startsWith(other)

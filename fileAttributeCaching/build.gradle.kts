@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     `maven-publish`
     signing
+    alias(libs.plugins.ksp)
 }
 
 val attributeCachingFilesystemVersion: String by project
@@ -9,6 +10,8 @@ version = attributeCachingFilesystemVersion
 
 dependencies {
     api(project(":forwarding"))
+    implementation(libs.auto.service.annotations)
+    ksp(libs.auto.service.ksp)
 
     testImplementation(libs.truth)
     testImplementation(libs.junit.jupiter.params)
@@ -17,6 +20,10 @@ dependencies {
     testImplementation(libs.jimfs)
 
     testRuntimeOnly(libs.junit.jupiter.engine)
+}
+
+kotlin {
+    explicitApi()
 }
 
 // <editor-fold desc="Publishing and Signing">

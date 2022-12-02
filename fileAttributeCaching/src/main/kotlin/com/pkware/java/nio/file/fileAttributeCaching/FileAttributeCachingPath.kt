@@ -1,6 +1,7 @@
 package com.pkware.java.nio.file.fileAttributeCaching
 
 import com.pkware.java.nio.file.forwarding.ForwardingPath
+import java.nio.file.FileSystem
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.attribute.DosFileAttributes
@@ -18,14 +19,17 @@ private const val CACHE_PRESERVATION_SECONDS: Long = 5
  *
  * @param delegate the [Path] to forward calls to if needed.
  */
-class FileAttributeCachingPath(
-    delegate: Path
+internal class FileAttributeCachingPath(
+    private val fileSystem: FileSystem,
+    internal val delegate: Path
 ) : ForwardingPath(delegate) {
 
     // ExpirableCache for thisFileAttributeCachingPath a BasicFileAttributes cache
     private val attributeCache = ExpirableCache<BasicFileAttributes?>(
         TimeUnit.SECONDS.toMillis(CACHE_PRESERVATION_SECONDS)
     )
+
+    override fun getFileSystem(): FileSystem = fileSystem
 
     /**
      * Sets the cache entry for the given attribute [name] with the given [value]. Can set single attributes or entire
@@ -50,9 +54,9 @@ class FileAttributeCachingPath(
      */
     fun <A : BasicFileAttributes?> setAttributeByType(type: Class<A>, value: A?) {
         when (type) {
-            BasicFileAttributes::class -> attributeCache["*"] = value
-            DosFileAttributes::class -> attributeCache["dos:*"] = value
-            PosixFileAttributes::class -> attributeCache["posix:*"] = value
+            BasicFileAttributes::class.java -> attributeCache["*"] = value
+            DosFileAttributes::class.java -> attributeCache["dos:*"] = value
+            PosixFileAttributes::class.java -> attributeCache["posix:*"] = value
         }
     }
 
@@ -74,9 +78,9 @@ class FileAttributeCachingPath(
         type: Class<A>,
         mappingFunction: Function<in String?, out A?>
     ): A? = when (type) {
-        BasicFileAttributes::class -> attributeCache.computeIfExpiredOrAbsent("*", mappingFunction) as A
-        DosFileAttributes::class -> attributeCache.computeIfExpiredOrAbsent("dos:*", mappingFunction) as A
-        PosixFileAttributes::class -> attributeCache.computeIfExpiredOrAbsent("posix:*", mappingFunction) as A
+        BasicFileAttributes::class.java -> attributeCache.computeIfExpiredOrAbsent("*", mappingFunction) as A
+        DosFileAttributes::class.java -> attributeCache.computeIfExpiredOrAbsent("dos:*", mappingFunction) as A
+        PosixFileAttributes::class.java -> attributeCache.computeIfExpiredOrAbsent("posix:*", mappingFunction) as A
         else -> null
     }
 

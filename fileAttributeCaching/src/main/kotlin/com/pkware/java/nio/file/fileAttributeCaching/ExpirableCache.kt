@@ -11,7 +11,7 @@ import java.util.function.Function
  *
  * @param flushInterval The time in milliseconds after which the cache is flushed.
  */
-class ExpirableCache <A> (private val flushInterval: Long) {
+internal class ExpirableCache<A>(private val flushInterval: Long) {
     private val clock = Clock.systemUTC()
     private var lastFlushTime = clock.millis()
     private val cache = HashMap<String, A?>()

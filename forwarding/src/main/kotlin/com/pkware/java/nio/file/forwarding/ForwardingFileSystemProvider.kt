@@ -20,10 +20,14 @@ import java.nio.file.spi.FileSystemProvider
  *
  * @param delegate The [FileSystemProvider] to forward calls to.
  */
-abstract class ForwardingFileSystemProvider(private val delegate: FileSystemProvider) : FileSystemProvider() {
-    override fun checkAccess(path: Path, vararg modes: AccessMode) = delegate.checkAccess(path, *modes)
+public abstract class ForwardingFileSystemProvider(private val delegate: FileSystemProvider) : FileSystemProvider() {
+    override fun checkAccess(path: Path, vararg modes: AccessMode) {
+        delegate.checkAccess(path, *modes)
+    }
 
-    override fun copy(source: Path, target: Path, vararg options: CopyOption) = delegate.copy(source, target, *options)
+    override fun copy(source: Path, target: Path, vararg options: CopyOption) {
+        delegate.copy(source, target, *options)
+    }
 
     override fun <V : FileAttributeView?> getFileAttributeView(
         path: Path,
@@ -48,7 +52,9 @@ abstract class ForwardingFileSystemProvider(private val delegate: FileSystemProv
         vararg attrs: FileAttribute<*>
     ): SeekableByteChannel = delegate.newByteChannel(path, options, *attrs)
 
-    override fun delete(path: Path) = delegate.delete(path)
+    override fun delete(path: Path) {
+        delegate.delete(path)
+    }
 
     override fun <A : BasicFileAttributes?> readAttributes(
         path: Path,
@@ -65,10 +71,15 @@ abstract class ForwardingFileSystemProvider(private val delegate: FileSystemProv
 
     override fun getFileStore(path: Path): FileStore = delegate.getFileStore(path)
 
-    override fun setAttribute(path: Path, attribute: String, value: Any?, vararg options: LinkOption) =
+    override fun setAttribute(path: Path, attribute: String, value: Any?, vararg options: LinkOption) {
         delegate.setAttribute(path, attribute, value, *options)
+    }
 
-    override fun move(source: Path, target: Path, vararg options: CopyOption) = delegate.move(source, target, *options)
+    override fun move(source: Path, target: Path, vararg options: CopyOption) {
+        delegate.move(source, target, *options)
+    }
 
-    override fun createDirectory(dir: Path, vararg attrs: FileAttribute<*>) = delegate.createDirectory(dir, *attrs)
+    override fun createDirectory(dir: Path, vararg attrs: FileAttribute<*>) {
+        delegate.createDirectory(dir, *attrs)
+    }
 }

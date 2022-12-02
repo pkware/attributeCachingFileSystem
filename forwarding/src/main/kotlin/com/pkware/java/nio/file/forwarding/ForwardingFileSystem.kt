@@ -13,9 +13,11 @@ import java.nio.file.spi.FileSystemProvider
  *
  * @param delegate The [FileSystem] to forward calls to.
  */
-abstract class ForwardingFileSystem(val delegate: FileSystem) : FileSystem() {
+public abstract class ForwardingFileSystem(private val delegate: FileSystem) : FileSystem() {
 
-    override fun close() = delegate.close()
+    override fun close() {
+        delegate.close()
+    }
 
     override fun getSeparator(): String = delegate.separator
 
