@@ -8,10 +8,13 @@ val attributeCachingFilesystemVersion: String by project
 version = attributeCachingFilesystemVersion
 
 dependencies {
+    api(project(":forwarding"))
+
     testImplementation(libs.truth)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.assertj)
     testImplementation(libs.mockito.core)
+    testImplementation(libs.jimfs)
 
     testRuntimeOnly(libs.junit.jupiter.engine)
 }

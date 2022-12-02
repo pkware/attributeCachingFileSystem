@@ -16,7 +16,7 @@ subprojects {
     val kotlinJvmTarget = "1.8"
 
     repositories {
-      mavenCentral()
+        mavenCentral()
     }
 
     tasks.withType<KotlinCompile> {

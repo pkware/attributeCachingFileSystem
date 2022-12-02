@@ -1,5 +1,6 @@
 include(
-  "fileAttributeCaching"
+    "forwarding",
+    "fileAttributeCaching"
 )
 
 rootProject.name = "attributeCachingFilesystem"
@@ -7,37 +8,37 @@ rootProject.name = "attributeCachingFilesystem"
 enableFeaturePreview("VERSION_CATALOGS")
 
 dependencyResolutionManagement {
-  repositories {
-    mavenCentral()
-  }
+    repositories {
+        mavenCentral()
+    }
 }
 
 pluginManagement {
-  repositories {
-    mavenCentral()
-    gradlePluginPortal()
-  }
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
 }
 
 plugins {
-  `gradle-enterprise`
+    `gradle-enterprise`
 }
 
 val isCiServer = System.getenv().containsKey("CI")
 
 gradleEnterprise {
-  buildScan {
-    termsOfServiceUrl = "https://gradle.com/terms-of-service"
-    termsOfServiceAgree = "yes"
-    if (isCiServer) {
-      tag("CI")
+    buildScan {
+        termsOfServiceUrl = "https://gradle.com/terms-of-service"
+        termsOfServiceAgree = "yes"
+        if (isCiServer) {
+            tag("CI")
+        }
     }
-  }
 }
 
 buildCache {
-  local {
-    // Disable on CI b/c local cache will always be empty and will be cleared after run
-    isEnabled = !isCiServer
-  }
+    local {
+        // Disable on CI b/c local cache will always be empty and will be cleared after run
+        isEnabled = !isCiServer
+    }
 }

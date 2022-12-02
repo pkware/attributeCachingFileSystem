@@ -1,4 +1,4 @@
-package com.pkware.java.nio.file.fileAttributeCaching
+package com.pkware.java.nio.file.forwarding
 
 import java.nio.file.FileStore
 import java.nio.file.FileSystem
@@ -9,15 +9,11 @@ import java.nio.file.attribute.UserPrincipalLookupService
 import java.nio.file.spi.FileSystemProvider
 
 /**
- * TODO figure out if needed and document.
+ * A [FileSystem] wrapper that handles forwarding all calls to the [delegate].
+ *
+ * @param delegate The [FileSystem] to forward calls to.
  */
-abstract class FileAttributeCachingFileSystem(
-    /**
-     * TODO document.
-     */
-    val delegate: FileSystem
-
-) : FileSystem() {
+abstract class ForwardingFileSystem(val delegate: FileSystem) : FileSystem() {
 
     override fun close() = delegate.close()
 
