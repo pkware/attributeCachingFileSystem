@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.detekt)
-    kotlin("jvm") version "1.5.30" apply false
+    kotlin("jvm") version "1.7.21" apply false
 }
 
 subprojects {
