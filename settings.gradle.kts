@@ -3,10 +3,6 @@ include(
     "fileAttributeCaching"
 )
 
-rootProject.name = "attributeCachingFilesystem"
-
-enableFeaturePreview("VERSION_CATALOGS")
-
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
