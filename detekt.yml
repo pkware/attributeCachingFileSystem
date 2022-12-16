@@ -163,7 +163,8 @@ style:
   RedundantHigherOrderMapUsage:
     active: true
   RedundantVisibilityModifierRule:
-    active: true
+    # activate to true once https://github.com/detekt/detekt/issues/3874 is resolved
+    active: false
   ReturnCount:
     active: false
   SpacingBetweenPackageAndImports:

@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
 
 class ExpirableCacheTest {
 
-    private val attributeCache = ExpirableCache<String>(
+    private val attributeCache = ExpirableCache<String, String>(
         TimeUnit.SECONDS.toMillis(1)
     )
 
