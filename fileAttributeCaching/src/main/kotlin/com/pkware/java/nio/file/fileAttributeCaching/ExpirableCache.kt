@@ -11,10 +11,10 @@ import java.util.function.Function
  *
  * @param flushInterval The time in milliseconds after which the cache is flushed.
  */
-internal class ExpirableCache<A>(private val flushInterval: Long) {
+internal class ExpirableCache<K, V>(private val flushInterval: Long) {
     private val clock = Clock.systemUTC()
     private var lastFlushTime = clock.millis()
-    private val cache = HashMap<String, A?>()
+    private val cache = HashMap<K, V?>()
 
     /**
      * The size of the cache.
@@ -38,9 +38,9 @@ internal class ExpirableCache<A>(private val flushInterval: Long) {
      */
     @Throws(ConcurrentModificationException::class)
     fun computeIfExpiredOrAbsent(
-        key: String,
-        mappingFunction: Function<in String?, out A?>
-    ): A? {
+        key: K,
+        mappingFunction: Function<in K, out V?>
+    ): V? {
         recycle()
         return cache.computeIfAbsent(key, mappingFunction)
     }
@@ -50,7 +50,7 @@ internal class ExpirableCache<A>(private val flushInterval: Long) {
      * @param key The key to lookup.
      * @param value The value to set.
      */
-    operator fun set(key: String, value: A?) {
+    operator fun set(key: K, value: V?) {
         cache[key] = value
     }
 
@@ -59,7 +59,7 @@ internal class ExpirableCache<A>(private val flushInterval: Long) {
      * @param key The key to remove.
      * @return The value associated with the removed key or `null` if it doesn't exist or the cache expired.
      */
-    fun remove(key: String): A? {
+    fun remove(key: K): V? {
         recycle()
         return cache.remove(key)
     }
@@ -71,7 +71,7 @@ internal class ExpirableCache<A>(private val flushInterval: Long) {
      * @param key The key to lookup.
      * @return The value associated with the [key] or `null` if the key doesn't exist or the cache expired.
      */
-    operator fun get(key: String): A? {
+    operator fun get(key: K): V? {
         recycle()
         return cache[key]
     }

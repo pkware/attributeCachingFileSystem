@@ -17,6 +17,7 @@ private const val CACHE_PRESERVATION_SECONDS: Long = 5
  *
  * The cache duration is preset to be [CACHE_PRESERVATION_SECONDS].
  *
+ * @param fileSystem the [FileSystem] associated with this [FileAttributeCachingPath] instance.
  * @param delegate the [Path] to forward calls to if needed.
  */
 internal class FileAttributeCachingPath(
@@ -25,15 +26,17 @@ internal class FileAttributeCachingPath(
 ) : ForwardingPath(delegate) {
 
     // ExpirableCache for thisFileAttributeCachingPath a BasicFileAttributes cache
-    private val attributeCache = ExpirableCache<BasicFileAttributes?>(
+    private val attributeCache = ExpirableCache<String, BasicFileAttributes?>(
         TimeUnit.SECONDS.toMillis(CACHE_PRESERVATION_SECONDS)
     )
 
     override fun getFileSystem(): FileSystem = fileSystem
 
     /**
-     * Sets the cache entry for the given attribute [name] with the given [value]. Can set single attributes or entire
-     * attribute `Class`es such as "dos", "posix", and "basic"
+     * Sets the cache entry for the given attribute [name] with the given [value]. Can only set entire
+     * attribute `Class`es such as "dos:*", "posix:*", and "basic:*"
+     *
+     * The attribute name must include a "*" in order to be set within the cache.
      *
      * @param name The name of the attribute to cache.
      * @param value The attribute value to cache.
@@ -42,7 +45,10 @@ internal class FileAttributeCachingPath(
         // remove basic from our attribute name if present as basicFileAttributes can be accessed without that qualifier
         val checkedName = name.substringAfter("basic:")
 
-        attributeCache[checkedName] = value
+        // this check is to ensure that we are only storing attribute classes and not specific attributes
+        if (checkedName.contains("*")) {
+            attributeCache[checkedName] = value
+        }
     }
 
     /**
@@ -58,6 +64,46 @@ internal class FileAttributeCachingPath(
             DosFileAttributes::class.java -> attributeCache["dos:*"] = value
             PosixFileAttributes::class.java -> attributeCache["posix:*"] = value
         }
+    }
+
+    /**
+     * Copies this [FileAttributeCachingPath]s cached values to the [target]. Also runs [functionToExecute] midway
+     * through function execution to provide support to external operations such as
+     * [FileAttributeCachingFileSystemProvider.copy] and [FileAttributeCachingFileSystemProvider.move].
+     *
+     * @param target The [FileAttributeCachingPath] to copy cached attributes to.
+     * @param functionToExecute The [Runnable] function to execute midway through this function.
+     */
+    fun copyCachedAttributesTo(target: FileAttributeCachingPath, functionToExecute: Runnable) {
+        val delegateFileSystem = delegate.fileSystem
+        val delegateProvider = delegateFileSystem.provider()
+        val supportedViews = delegateFileSystem.supportedFileAttributeViews()
+
+        // getAllAttributesMatchingClass takes care of cache expiration and computation if this source cache is null
+        // or expired
+        val basicFileAttributes = getAllAttributesMatchingClass(BasicFileAttributes::class.java) {
+            delegateProvider.readAttributes(delegate, BasicFileAttributes::class.java)
+        }
+
+        val dosFileAttributes = if (supportedViews.contains("dos")) {
+            getAllAttributesMatchingClass(DosFileAttributes::class.java) {
+                delegateProvider.readAttributes(delegate, DosFileAttributes::class.java)
+            }
+        } else null
+
+        val posixFileAttributes = if (supportedViews.contains("posix")) {
+            getAllAttributesMatchingClass(PosixFileAttributes::class.java) {
+                delegateProvider.readAttributes(delegate, PosixFileAttributes::class.java)
+            }
+        } else null
+
+        functionToExecute.run()
+
+        // Can set null values here but that's okay, next time value is read as null it will be computed
+        // from outside the cache.
+        target.setAttributeByType(BasicFileAttributes::class.java, basicFileAttributes)
+        target.setAttributeByType(DosFileAttributes::class.java, dosFileAttributes)
+        target.setAttributeByType(PosixFileAttributes::class.java, posixFileAttributes)
     }
 
     /**
@@ -124,7 +170,6 @@ internal class FileAttributeCachingPath(
         attributeMap["lastModifiedTime"] = attributeClass.lastModifiedTime()
         attributeMap["lastAccessTime"] = attributeClass.lastAccessTime()
         attributeMap["creationTime"] = attributeClass.creationTime()
-        // TODO not sure if key name is correct for any BasicFileAttributes below this line, hard to find docs
         attributeMap["regularFile"] = attributeClass.isRegularFile
         attributeMap["directory"] = attributeClass.isDirectory
         attributeMap["symbolicLink"] = attributeClass.isSymbolicLink
