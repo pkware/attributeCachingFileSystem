@@ -182,7 +182,9 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
         val isHidden = attributesMap["dos:hidden"] as Boolean && !(attributesMap["directory"] as Boolean)
         isHidden
     } else {
-        path.fileName.startsWith(".")
+        val delegatePath = path.asCachingPath().delegate
+        val delegateProvider = delegatePath.fileSystem.provider()
+        delegateProvider.isHidden(delegatePath)
     }
 
     override fun getFileStore(path: Path): FileStore {
