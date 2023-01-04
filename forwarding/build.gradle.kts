@@ -2,6 +2,9 @@ plugins {
     kotlin("jvm")
 }
 
+val attributeCachingFilesystemVersion: String by project
+version = attributeCachingFilesystemVersion
+
 dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.junit.jupiter.params)

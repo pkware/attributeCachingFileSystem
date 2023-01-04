@@ -1,6 +1,6 @@
 include(
     "forwarding",
-    "fileAttributeCaching"
+    "file-attribute-caching",
 )
 
 dependencyResolutionManagement {
