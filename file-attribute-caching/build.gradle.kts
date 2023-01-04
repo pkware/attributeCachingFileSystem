@@ -8,14 +8,18 @@ plugins {
 val attributeCachingFilesystemVersion: String by project
 version = attributeCachingFilesystemVersion
 
+ksp {
+    arg("autoserviceKsp.verify", "true")
+}
+
 dependencies {
     api(project(":forwarding"))
     implementation(libs.auto.service.annotations)
     ksp(libs.auto.service.ksp)
 
+    testImplementation(libs.commons.io)
     testImplementation(libs.truth)
     testImplementation(libs.junit.jupiter.params)
-    testImplementation(libs.assertj)
     testImplementation(libs.mockito.core)
     testImplementation(libs.jimfs)
 
@@ -24,6 +28,7 @@ dependencies {
 
 kotlin {
     explicitApi()
+    jvmToolchain { languageVersion.set(JavaLanguageVersion.of(8)) }
 }
 
 // <editor-fold desc="Publishing and Signing">
@@ -91,7 +96,6 @@ val String.isReleaseBuild
 val Project.releaseRepositoryUrl: String
     get() = properties.getOrDefault(
         "RELEASE_REPOSITORY_URL",
-
         "https://oss.sonatype.org/service/local/staging/deploy/maven2"
     ).toString()
 

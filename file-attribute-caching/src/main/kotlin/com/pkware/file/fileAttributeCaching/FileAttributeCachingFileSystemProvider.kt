@@ -14,6 +14,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.OpenOption
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributeView
 import java.nio.file.attribute.BasicFileAttributes
@@ -51,7 +52,7 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
     override fun getFileSystem(uri: URI): FileSystem =
         fileSystems[uri] ?: throw FileSystemNotFoundException("Filesystem for $uri not found")
 
-    override fun getPath(uri: URI): Path = Path.of(uri)
+    override fun getPath(uri: URI): Path = Paths.get(uri)
 
     override fun newByteChannel(
         path: Path,
