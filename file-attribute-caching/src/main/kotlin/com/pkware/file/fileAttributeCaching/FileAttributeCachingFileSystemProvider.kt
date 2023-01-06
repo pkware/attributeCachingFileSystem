@@ -94,14 +94,15 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
         val delegateTargetPath = target.asCachingPath().delegate
 
         if (options.contains(StandardCopyOption.COPY_ATTRIBUTES)) {
-            // filter out StandardCopyOption.COPY_ATTRIBUTES here
-            val newOptions = options.filter {
-                it != StandardCopyOption.COPY_ATTRIBUTES
-            }.toTypedArray()
-
-            // if we have both target and source caching paths we copy the attributes from source to target and run
+            // If we have both target and source caching paths we copy the attributes from source to target and run
             // Files.copy(source, target, *newOptions) during copyCachedAttributesTo
             if (source is FileAttributeCachingPath && target is FileAttributeCachingPath) {
+                // Filter out StandardCopyOption.COPY_ATTRIBUTES here because we dont want the copied file to repopulate
+                // the cache from the delegate provider/filesystem.
+                val newOptions = options.filter {
+                    it != StandardCopyOption.COPY_ATTRIBUTES
+                }.toTypedArray()
+
                 source.copyCachedAttributesTo(target) {
                     Files.copy(delegateSourcePath, delegateTargetPath, *newOptions)
                 }
@@ -109,8 +110,8 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
                 Files.copy(delegateSourcePath, delegateTargetPath, *options)
             }
         } else {
-            // if we are not StandardCopyOption.COPY_ATTRIBUTES we dont care about caching the attributes for the
-            // copied file.
+            // If the StandardCopyOption.COPY_ATTRIBUTES option is not selected, there is no need to cache the
+            // attributes for the copied file.
             Files.copy(delegateSourcePath, delegateTargetPath, *options)
         }
     }
@@ -133,23 +134,24 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
         val delegateTargetPath = target.asCachingPath().delegate
 
         if (options.contains(StandardCopyOption.COPY_ATTRIBUTES)) {
-            // filter out StandardCopyOption.COPY_ATTRIBUTES here
-            val newOptions = options.filter {
-                it != StandardCopyOption.COPY_ATTRIBUTES
-            }.toTypedArray()
-
-            // if we have both target and source caching paths we copy the attributes from source to target and run
+            // If we have both target and source caching paths we copy the attributes from source to target and run
             // Files.move(source, target, *newOptions) during copyCachedAttributesTo
             if (source is FileAttributeCachingPath && target is FileAttributeCachingPath) {
+                // Filter out StandardCopyOption.COPY_ATTRIBUTES here because we dont want the moved file to repopulate
+                // the cache from the delegate provider/filesystem.
+                val newOptions = options.filter {
+                    it != StandardCopyOption.COPY_ATTRIBUTES
+                }.toTypedArray()
+
                 source.copyCachedAttributesTo(target) {
                     Files.move(delegateSourcePath, delegateTargetPath, *newOptions)
                 }
             } else {
-                Files.move(delegateSourcePath, delegateTargetPath, *newOptions)
+                Files.move(delegateSourcePath, delegateTargetPath, *options)
             }
         } else {
-            // if we are not StandardCopyOption.COPY_ATTRIBUTES we dont care about caching the attributes for the
-            // copied file.
+            // If the StandardCopyOption.COPY_ATTRIBUTES option is not selected, there is no need to cache the
+            // attributes for the moved file.
             Files.move(delegateSourcePath, delegateTargetPath, *options)
         }
     }
@@ -164,7 +166,7 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
      *
      * On UNIX a file is considered to be hidden if its name begins with a period character ('.').
      *
-     * Depending on the implementation this method may access the  to determine if the file is
+     * Depending on the implementation, this method may access the [path] to determine if the file is
      * considered hidden.
      *
      * @param path The path to check.

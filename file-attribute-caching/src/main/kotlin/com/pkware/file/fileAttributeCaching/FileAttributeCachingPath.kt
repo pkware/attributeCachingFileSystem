@@ -9,6 +9,7 @@ import java.nio.file.attribute.PosixFileAttributes
 import java.util.concurrent.TimeUnit
 import java.util.function.Function
 
+// Set the cache preservation duration to 5 seconds as most file operations complete in this time.
 private const val CACHE_PRESERVATION_SECONDS: Long = 5
 
 /**
