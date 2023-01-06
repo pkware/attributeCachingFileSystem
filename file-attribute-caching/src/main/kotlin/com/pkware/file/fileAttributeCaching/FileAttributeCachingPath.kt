@@ -32,6 +32,13 @@ internal class FileAttributeCachingPath(
 
     override fun getFileSystem(): FileSystem = fileSystem
 
+    override fun resolve(other: Path): Path {
+        // Make sure if other is a FileAttributeCachingPath that we pass along other's
+        // delegate rather than other itself.
+        if (other is FileAttributeCachingPath) return delegate.resolve(other.delegate)
+        return delegate.resolve(other)
+    }
+
     /**
      * Sets the cache entry for the given attribute [name] with the given [value]. Can only set entire
      * attribute `Class`es such as "dos:*", "posix:*", and "basic:*"

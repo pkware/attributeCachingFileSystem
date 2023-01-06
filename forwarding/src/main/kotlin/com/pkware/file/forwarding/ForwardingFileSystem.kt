@@ -2,6 +2,7 @@ package com.pkware.file.forwarding
 
 import java.nio.file.FileStore
 import java.nio.file.FileSystem
+import java.nio.file.FileSystems
 import java.nio.file.Path
 import java.nio.file.PathMatcher
 import java.nio.file.WatchService
@@ -16,7 +17,8 @@ import java.nio.file.spi.FileSystemProvider
 public abstract class ForwardingFileSystem(private val delegate: FileSystem) : FileSystem() {
 
     override fun close() {
-        delegate.close()
+        // Do not close the delegate if it is the default filesystem.
+        if (delegate != FileSystems.getDefault()) delegate.close()
     }
 
     override fun getSeparator(): String = delegate.separator

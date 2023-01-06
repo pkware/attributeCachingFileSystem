@@ -34,7 +34,7 @@ public abstract class ForwardingPath(private val delegate: Path) : Path {
 
     override fun getFileSystem(): FileSystem = delegate.fileSystem
 
-    override fun getFileName(): Path = delegate.fileName
+    override fun getFileName(): Path? = delegate.fileName
 
     override fun isAbsolute(): Boolean = delegate.isAbsolute
 
@@ -58,7 +58,7 @@ public abstract class ForwardingPath(private val delegate: Path) : Path {
 
     override fun normalize(): Path = delegate.normalize()
 
-    override fun getParent(): Path = delegate.parent
+    override fun getParent(): Path? = delegate.parent
 
     override fun compareTo(other: Path?): Int = delegate.compareTo(other)
 
@@ -66,7 +66,7 @@ public abstract class ForwardingPath(private val delegate: Path) : Path {
 
     override fun startsWith(other: Path): Boolean = delegate.startsWith(other)
 
-    override fun getRoot(): Path = delegate.root
+    override fun getRoot(): Path? = delegate.root
 
     override fun resolve(other: Path): Path = delegate.resolve(other)
 

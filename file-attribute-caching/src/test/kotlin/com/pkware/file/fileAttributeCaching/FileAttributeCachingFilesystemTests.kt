@@ -3,6 +3,8 @@ package com.pkware.file.fileAttributeCaching
 import com.google.common.truth.ComparableSubject
 import com.google.common.truth.Truth.assertThat
 import org.apache.commons.io.IOUtils
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.condition.DisabledOnOs
 import org.junit.jupiter.api.condition.OS
 import org.junit.jupiter.params.ParameterizedTest
@@ -11,6 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
 import java.nio.file.CopyOption
 import java.nio.file.FileSystem
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
@@ -27,6 +30,18 @@ import java.util.stream.Stream
 import kotlin.io.path.exists
 
 class FileAttributeCachingFilesystemTests {
+    @Test
+    fun `create java io tmpdir file with default filesystem wrapped by file attribute caching filesystem`() {
+        FileAttributeCachingFileSystem.wrapping(FileSystems.getDefault()).use {
+            assertDoesNotThrow {
+                val javaTmpPath = it.getPath(System.getProperty("java.io.tmpdir"))
+                val tempFilePath = Files.createTempFile(javaTmpPath, "test", ".txt")
+                assertThat(Files.exists(tempFilePath)).isTrue()
+                Files.deleteIfExists(tempFilePath)
+            }
+        }
+    }
+
     @ParameterizedTest
     @MethodSource("allTypes")
     fun <A : BasicFileAttributes?> `read attributes by class type from provider`(
