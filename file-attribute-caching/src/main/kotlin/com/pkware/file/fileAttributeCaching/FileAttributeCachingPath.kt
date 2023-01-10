@@ -183,7 +183,9 @@ internal class FileAttributeCachingPath(
         attributeMap["symbolicLink"] = attributeClass.isSymbolicLink
         attributeMap["other"] = attributeClass.isOther
         attributeMap["size"] = attributeClass.size()
-        attributeMap["fileKey"] = attributeClass.fileKey()
+        if (attributeClass.fileKey() != null) {
+            attributeMap["fileKey"] = attributeClass.fileKey()
+        }
 
         // attributeClass may or may not be either of the following BasicFileAttributes subclasses
         if (attributeClass is DosFileAttributes) {

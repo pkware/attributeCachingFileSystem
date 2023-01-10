@@ -171,7 +171,7 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
      *
      * @param path The path to check.
      * @return `true` if the path is hidden, `false` otherwise.
-     * @throws IOException if an error occurs while accessing the underlying
+     * @throws IOException if an error occurs while accessing the underlying delegate provider.
      */
     @Throws(IOException::class)
     override fun isHidden(path: Path): Boolean = if (
@@ -181,7 +181,7 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
         val cachingPath = path.asCachingPath()
         val attributesMap = cachingPath.getAllAttributesMatchingName("dos:*") {
             getAttributesClassFromPathProvider(path, "dos:*")
-        } ?: throw IOException("Could not dos attributes from delegate filesystem.")
+        } ?: throw IOException("Could not get dos attributes from delegate filesystem.")
         val isHidden = attributesMap["dos:hidden"] as Boolean && !(attributesMap["directory"] as Boolean)
         isHidden
     } else {
@@ -225,9 +225,10 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
      * [DosFileAttributes], or [PosixFileAttributes].
      * @param options The [LinkOption]s indicating how symbolic links are handled.
      * @return The file attributes for the given [path].
-     * @throws IOException If the [path] is not a [FileAttributeCachingPath] or if something goes wrong with the
-     * underlying calls to the [path]s delegate [FileSystemProvider].
-     * @throws UnsupportedOperationException If the attributes of the given [type] are not supported.
+     * @throws IOException  If something goes wrong with the underlying calls to the [path]s delegate
+     * [FileSystemProvider].
+     * @throws UnsupportedOperationException If the [path] is not a [FileAttributeCachingPath] or the attributes of the
+     * given [type] are not supported.
      */
     @Throws(IOException::class, UnsupportedOperationException::class)
     override fun <A : BasicFileAttributes?> readAttributes(
@@ -239,7 +240,7 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
 
         val attributes = path.getAllAttributesMatchingClass(type) {
             delegateProvider.readAttributes(path.delegate, type, *options)
-        } ?: throw IOException("Could not read attributes from delegate filesystem.")
+        } ?: throw UnsupportedOperationException("Could not read attributes from delegate filesystem.")
         attributes
     } else {
         throw IOException("Path was not a FileAttributeCachingPath, could not read attributes.")
@@ -257,9 +258,10 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
      * `Class` String (ie: "dos:*","basic:*","posix:permissions", etc.).
      * @param options The [LinkOption]s indicating how symbolic links are handled.
      * @return The file attributes for the given [path] as a [MutableMap].
-     * @throws IOException If the [path] is not a [FileAttributeCachingPath] or if something goes wrong with the
-     * underlying calls to the [path]'s delegate [FileSystemProvider].
-     * @throws UnsupportedOperationException If the given [attributes] are not supported.
+     * @throws IOException  If something goes wrong with the underlying calls to the [path]s delegate
+     * [FileSystemProvider].
+     * @throws UnsupportedOperationException If the [path] is not a [FileAttributeCachingPath] or the attributes are not
+     * supported.
      */
     @Throws(IOException::class, UnsupportedOperationException::class)
     override fun readAttributes(
@@ -269,10 +271,10 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
     ): MutableMap<String, Any> = if (path is FileAttributeCachingPath) {
         val attributesMap = path.getAllAttributesMatchingName(attributes) {
             getAttributesClassFromPathProvider(path, attributes)
-        } ?: throw IOException("Could not read attributes from delegate filesystem.")
+        } ?: throw UnsupportedOperationException("Could not read attributes from delegate filesystem.")
         attributesMap
     } else {
-        throw IOException("Path was not a FileAttributeCachingPath, could not read attributes.")
+        throw UnsupportedOperationException("Path was not a FileAttributeCachingPath, could not read attributes.")
     }
 
     /**
@@ -315,7 +317,9 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
             val attributesObject = getAttributesClassFromPathProvider(path, attributeClassName)
             path.setAttributeByName(attributeClassName, attributesObject)
         } else {
-            throw IOException("Path was not a FileAttributeCachingPath, could not set attribute cache.")
+            throw UnsupportedOperationException(
+                "Path was not a FileAttributeCachingPath, could not set attribute cache."
+            )
         }
     }
 
@@ -333,20 +337,14 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
         val delegatePath = path.asCachingPath().delegate
         val delegateProvider = delegatePath.fileSystem.provider()
 
-        val attributeView: Any = if (attributes.startsWith("dos")) {
+        val attributeView: BasicFileAttributeView? = if (attributes.startsWith("dos")) {
             delegateProvider.getFileAttributeView(delegatePath, DosFileAttributeView::class.java)
         } else if (attributes.startsWith("posix")) {
             delegateProvider.getFileAttributeView(delegatePath, PosixFileAttributeView::class.java)
         } else {
             delegateProvider.getFileAttributeView(delegatePath, BasicFileAttributeView::class.java)
         }
-
-        return when (attributeView) {
-            is DosFileAttributeView -> attributeView.readAttributes()
-            is PosixFileAttributeView -> attributeView.readAttributes()
-            is BasicFileAttributeView -> attributeView.readAttributes()
-            else -> null
-        }
+        return attributeView?.readAttributes()
     }
 }
 

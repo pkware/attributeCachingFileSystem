@@ -27,6 +27,7 @@ import java.nio.file.attribute.UserPrincipal
 import java.text.SimpleDateFormat
 import java.util.EnumSet
 import java.util.stream.Stream
+import kotlin.io.path.div
 import kotlin.io.path.exists
 
 class FileAttributeCachingFilesystemTests {
@@ -158,6 +159,53 @@ class FileAttributeCachingFilesystemTests {
         }
     }
 
+    @Test
+    fun `cached attributes do not get modified by concurrent operation if cache has not expired`() {
+        val defaultFileSystem = FileSystems.getDefault()
+        val tempDirString = System.getProperty("java.io.tmpdir")
+
+        FileAttributeCachingFileSystem.wrapping(defaultFileSystem).use {
+
+            // get file attribute caching path
+            val cachingPath = it.getPath("$tempDirString\\testfile.txt")
+            Files.deleteIfExists(cachingPath)
+            Files.createFile(cachingPath)
+            Files.newOutputStream(cachingPath).use { outputStream ->
+                outputStream.write("hello".toByteArray(Charsets.UTF_8))
+            }
+
+            val lastAccessTime = FileTime.from(
+                SimpleDateFormat("MM/dd/yyyy, hh:mm:ss a").parse("01/01/1971, 08:34:27 PM").toInstant()
+            )
+            val creationTime = FileTime.from(
+                SimpleDateFormat("MM/dd/yyyy, hh:mm:ss a").parse("01/01/1969, 06:34:27 AM").toInstant()
+            )
+
+            // set and populate cache attributes, 3 different times
+            Files.setAttribute(cachingPath, "lastModifiedTime", testDateFileTime)
+            Files.setAttribute(cachingPath, "lastAccessTime", lastAccessTime)
+            Files.setAttribute(cachingPath, "creationTime", creationTime)
+
+            // simulate concurrent modification on default filesystem
+            val concurrentPath = defaultFileSystem.getPath("$tempDirString\\testfile.txt")
+            val concurrentTime = FileTime.from(
+                SimpleDateFormat("MM/dd/yyyy, hh:mm:ss a").parse("01/01/2001, 01:11:11 PM").toInstant()
+            )
+            // should set the attributes directly without setting the cache, set all to same time
+            Files.setAttribute(concurrentPath, "lastModifiedTime", concurrentTime)
+            Files.setAttribute(concurrentPath, "lastAccessTime", concurrentTime)
+            Files.setAttribute(concurrentPath, "creationTime", concurrentTime)
+
+            // now read attributes from caching path and verify they dont change
+            val attributesMap = Files.readAttributes(cachingPath, "*")
+
+            assertThat(attributesMap.size).isEqualTo(12)
+            assertThat(attributesMap["lastModifiedTime"]).isEqualTo(testDateFileTime)
+            assertThat(attributesMap["lastAccessTime"]).isEqualTo(lastAccessTime)
+            assertThat(attributesMap["creationTime"]).isEqualTo(creationTime)
+        }
+    }
+
     @ParameterizedTest
     @MethodSource("allFileSystemsWithCopyOption")
     fun `copy file from source to target`(
@@ -200,7 +248,7 @@ class FileAttributeCachingFilesystemTests {
     }
 
     @ParameterizedTest
-    @MethodSource("allFileSystemsWithCopyOption")
+    @MethodSource("allFileSystemsWithMoveOption")
     fun `move file from source to target`(
         option: CopyOption,
         fileSystem: () -> FileSystem
@@ -321,6 +369,19 @@ class FileAttributeCachingFilesystemTests {
             Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::linuxJimfs),
             Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::osXJimfs),
             Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::osXJimfs),
+        )
+
+        @JvmStatic
+        fun allFileSystemsWithMoveOption(): Stream<Arguments> = Stream.of(
+            Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::windowsJimfs),
+            Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::windowsJimfs),
+            Arguments.arguments(StandardCopyOption.ATOMIC_MOVE, ::windowsJimfs),
+            Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::linuxJimfs),
+            Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::linuxJimfs),
+            Arguments.arguments(StandardCopyOption.ATOMIC_MOVE, ::linuxJimfs),
+            Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::osXJimfs),
+            Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::osXJimfs),
+            Arguments.arguments(StandardCopyOption.ATOMIC_MOVE, ::osXJimfs),
         )
 
         private fun ComparableSubject<FileTime>.followedFlagRulesComparedTo(
