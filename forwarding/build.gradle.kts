@@ -10,7 +10,7 @@ version = attributeCachingFilesystemVersion
 dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.junit.jupiter.params)
-    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
 
     testRuntimeOnly(libs.junit.jupiter.engine)
 }

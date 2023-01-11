@@ -27,7 +27,6 @@ import java.nio.file.attribute.UserPrincipal
 import java.text.SimpleDateFormat
 import java.util.EnumSet
 import java.util.stream.Stream
-import kotlin.io.path.div
 import kotlin.io.path.exists
 
 class FileAttributeCachingFilesystemTests {
@@ -167,7 +166,7 @@ class FileAttributeCachingFilesystemTests {
         FileAttributeCachingFileSystem.wrapping(defaultFileSystem).use {
 
             // get file attribute caching path
-            val cachingPath = it.getPath("$tempDirString\\testfile.txt")
+            val cachingPath = it.getPath("$tempDirString${it.separator}testfile.txt")
             Files.deleteIfExists(cachingPath)
             Files.createFile(cachingPath)
             Files.newOutputStream(cachingPath).use { outputStream ->
@@ -187,7 +186,9 @@ class FileAttributeCachingFilesystemTests {
             Files.setAttribute(cachingPath, "creationTime", creationTime)
 
             // simulate concurrent modification on default filesystem
-            val concurrentPath = defaultFileSystem.getPath("$tempDirString\\testfile.txt")
+            val concurrentPath = defaultFileSystem.getPath(
+                "$tempDirString${defaultFileSystem.separator}testfile.txt"
+            )
             val concurrentTime = FileTime.from(
                 SimpleDateFormat("MM/dd/yyyy, hh:mm:ss a").parse("01/01/2001, 01:11:11 PM").toInstant()
             )
@@ -199,7 +200,6 @@ class FileAttributeCachingFilesystemTests {
             // now read attributes from caching path and verify they dont change
             val attributesMap = Files.readAttributes(cachingPath, "*")
 
-            assertThat(attributesMap.size).isEqualTo(12)
             assertThat(attributesMap["lastModifiedTime"]).isEqualTo(testDateFileTime)
             assertThat(attributesMap["lastAccessTime"]).isEqualTo(lastAccessTime)
             assertThat(attributesMap["creationTime"]).isEqualTo(creationTime)

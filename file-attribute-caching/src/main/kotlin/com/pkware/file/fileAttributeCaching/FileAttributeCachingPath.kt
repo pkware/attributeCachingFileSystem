@@ -10,25 +10,26 @@ import java.util.concurrent.TimeUnit
 import java.util.function.Function
 
 // Set the cache preservation duration to 5 seconds as most file operations complete in this time.
-private const val CACHE_PRESERVATION_SECONDS: Long = 5
+internal const val CACHE_PRESERVATION_TIME_SECONDS: Long = 5
 
 /**
  * A [Path] instance that supports caching of [BasicFileAttributes] and other classes that extend it such as
  * [DosFileAttributes] and [PosixFileAttributes].
  *
- * The cache duration is preset to be [CACHE_PRESERVATION_SECONDS].
- *
  * @param fileSystem the [FileSystem] associated with this [FileAttributeCachingPath] instance.
  * @param delegate the [Path] to forward calls to if needed.
+ * @param cacheTimeout the amount of time (in seconds) allowed before flushing this [FileAttributeCachingPath]'s cache.
+ * The default is [CACHE_PRESERVATION_TIME_SECONDS].
  */
 internal class FileAttributeCachingPath(
     private val fileSystem: FileSystem,
-    internal val delegate: Path
+    internal val delegate: Path,
+    cacheTimeout: Long = CACHE_PRESERVATION_TIME_SECONDS
 ) : ForwardingPath(delegate) {
 
     // ExpirableCache for thisFileAttributeCachingPath a BasicFileAttributes cache
     private val attributeCache = ExpirableCache<String, BasicFileAttributes?>(
-        TimeUnit.SECONDS.toMillis(CACHE_PRESERVATION_SECONDS)
+        TimeUnit.SECONDS.toMillis(cacheTimeout)
     )
 
     override fun getFileSystem(): FileSystem = fileSystem
@@ -183,6 +184,7 @@ internal class FileAttributeCachingPath(
         attributeMap["symbolicLink"] = attributeClass.isSymbolicLink
         attributeMap["other"] = attributeClass.isOther
         attributeMap["size"] = attributeClass.size()
+        // Don't add the fileKey to our map if it's null, it throws an NPE
         if (attributeClass.fileKey() != null) {
             attributeMap["fileKey"] = attributeClass.fileKey()
         }

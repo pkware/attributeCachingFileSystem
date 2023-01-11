@@ -20,7 +20,6 @@ dependencies {
     testImplementation(libs.commons.io)
     testImplementation(libs.truth)
     testImplementation(libs.junit.jupiter.params)
-    testImplementation(libs.mockito.core)
     testImplementation(libs.jimfs)
 
     testRuntimeOnly(libs.junit.jupiter.engine)

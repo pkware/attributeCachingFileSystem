@@ -260,10 +260,11 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
      * @return The file attributes for the given [path] as a [MutableMap].
      * @throws IOException  If something goes wrong with the underlying calls to the [path]s delegate
      * [FileSystemProvider].
-     * @throws UnsupportedOperationException If the [path] is not a [FileAttributeCachingPath] or the attributes are not
-     * supported.
+     * @throws UnsupportedOperationException If the [path] is not a [FileAttributeCachingPath].
+     * @throws IllegalArgumentException If the [attributes] are not recognized, or they cannot be read from the delegate
+     * [FileSystemProvider].
      */
-    @Throws(IOException::class, UnsupportedOperationException::class)
+    @Throws(IOException::class, UnsupportedOperationException::class, IllegalArgumentException::class)
     override fun readAttributes(
         path: Path,
         attributes: String,
@@ -271,7 +272,7 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
     ): MutableMap<String, Any> = if (path is FileAttributeCachingPath) {
         val attributesMap = path.getAllAttributesMatchingName(attributes) {
             getAttributesClassFromPathProvider(path, attributes)
-        } ?: throw UnsupportedOperationException("Could not read attributes from delegate filesystem.")
+        } ?: throw IllegalArgumentException("Could not read attributes from delegate filesystem.")
         attributesMap
     } else {
         throw UnsupportedOperationException("Path was not a FileAttributeCachingPath, could not read attributes.")
