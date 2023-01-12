@@ -27,7 +27,9 @@ internal class FileAttributeCachingPath(
     cacheTimeout: Long = CACHE_PRESERVATION_TIME_SECONDS
 ) : ForwardingPath(delegate) {
 
-    // ExpirableCache for this FileAttributeCachingPath instance.
+    /**
+     * Instance of [ExpirableCache] that maps attribute class strings (*, dos:*, posix:*) to [BasicFileAttributes].
+     */
     private val attributeCache = ExpirableCache<String, BasicFileAttributes?>(
         TimeUnit.SECONDS.toMillis(cacheTimeout)
     )

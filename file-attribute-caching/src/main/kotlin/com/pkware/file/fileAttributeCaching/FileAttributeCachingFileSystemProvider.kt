@@ -176,7 +176,7 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
     ) {
         val cachingPath = path.asCachingPath()
         val attributesMap = cachingPath.getAllAttributesMatchingName("dos:*") {
-            getAttributesClassFromPathProvider(path, "dos:*")
+            getAttributesClassFromPathProvider(cachingPath, "dos:*")
         } ?: throw IOException("Could not get dos attributes from delegate filesystem.")
         val isHidden = attributesMap["dos:hidden"] as Boolean && !(attributesMap["directory"] as Boolean)
         isHidden
@@ -298,7 +298,6 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
 
         // Then set our cache
         if (path is FileAttributeCachingPath) {
-
             // Need to make sure that we only supply class names to path.setAttributeByName
             // cannot set single attribute in the cache
             val attributeClassName: String = if (attribute.startsWith("dos")) {
@@ -323,15 +322,18 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
     /**
      * Obtain the attribute `Class` for a given [path] and [attributes] String.
      *
-     * @param path The [Path] to obtain the attribute `Class` from.
+     * @param path The [FileAttributeCachingPath] to obtain the attribute `Class` from.
      * @param attributes The attributes used to look up the attribute `Class`. Can be single attributes or an entire
      * attribute `Class` String (ie: "dos:*","basic:*","posix:permissions", etc.).
      * @return The attribute `Class` for the [path] from the given [attributes] or `null` if the `Class` does not exist.
      * @throws IOException if an error occurs while trying to obtain the attribute `Class`.
      */
     @Throws(IOException::class)
-    private fun getAttributesClassFromPathProvider(path: Path, attributes: String): BasicFileAttributes? {
-        val delegatePath = path.asCachingPath().delegate
+    private fun getAttributesClassFromPathProvider(
+        path: FileAttributeCachingPath,
+        attributes: String
+    ): BasicFileAttributes? {
+        val delegatePath = path.delegate
         val delegateProvider = delegatePath.fileSystem.provider()
 
         val attributeView: BasicFileAttributeView? = if (attributes.startsWith("dos")) {
