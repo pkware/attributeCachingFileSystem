@@ -9,6 +9,7 @@ import org.junit.jupiter.api.condition.DisabledOnOs
 import org.junit.jupiter.api.condition.OS
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
 import java.nio.file.CopyOption
@@ -158,16 +159,18 @@ class FileAttributeCachingFilesystemTests {
         }
     }
 
-    @Test
-    fun `cached attributes do not get modified by concurrent operation if cache has not expired`() {
-        val defaultFileSystem = FileSystems.getDefault()
-        val tempDirString = System.getProperty("java.io.tmpdir")
+    @ParameterizedTest
+    @MethodSource("allFileSystems")
+    fun `cached attributes do not get modified by concurrent operation if cache has not expired`(
+        fileSystem: FileSystem
+    ) {
+        val tempDirString = fileSystem.getPath("temp")
 
-        FileAttributeCachingFileSystem.wrapping(defaultFileSystem).use {
+        FileAttributeCachingFileSystem.wrapping(fileSystem).use {
 
             // get file attribute caching path
+            Files.createDirectory(tempDirString)
             val cachingPath = it.getPath("$tempDirString${it.separator}testfile.txt")
-            Files.deleteIfExists(cachingPath)
             Files.createFile(cachingPath)
             Files.newOutputStream(cachingPath).use { outputStream ->
                 outputStream.write("hello".toByteArray(Charsets.UTF_8))
@@ -177,7 +180,7 @@ class FileAttributeCachingFilesystemTests {
                 SimpleDateFormat("MM/dd/yyyy, hh:mm:ss a").parse("01/01/1971, 08:34:27 PM").toInstant()
             )
             val creationTime = FileTime.from(
-                SimpleDateFormat("MM/dd/yyyy, hh:mm:ss a").parse("01/01/1969, 06:34:27 AM").toInstant()
+                SimpleDateFormat("MM/dd/yyyy, hh:mm:ss a").parse("01/01/1969, 06:34:27 PM").toInstant()
             )
 
             // set and populate cache attributes, 3 different times
@@ -186,8 +189,8 @@ class FileAttributeCachingFilesystemTests {
             Files.setAttribute(cachingPath, "creationTime", creationTime)
 
             // simulate concurrent modification on default filesystem
-            val concurrentPath = defaultFileSystem.getPath(
-                "$tempDirString${defaultFileSystem.separator}testfile.txt"
+            val concurrentPath = fileSystem.getPath(
+                "$tempDirString${fileSystem.separator}testfile.txt"
             )
             val concurrentTime = FileTime.from(
                 SimpleDateFormat("MM/dd/yyyy, hh:mm:ss a").parse("01/01/2001, 01:11:11 PM").toInstant()
@@ -326,62 +329,69 @@ class FileAttributeCachingFilesystemTests {
     companion object {
         @JvmStatic
         fun allTypes(): Stream<Arguments> = Stream.of(
-            Arguments.arguments(BasicFileAttributes::class.java, ::windowsJimfs),
-            Arguments.arguments(DosFileAttributes::class.java, ::windowsJimfs),
-            Arguments.arguments(PosixFileAttributes::class.java, ::linuxJimfs),
-            Arguments.arguments(PosixFileAttributes::class.java, ::osXJimfs),
+            arguments(BasicFileAttributes::class.java, ::windowsJimfs),
+            arguments(DosFileAttributes::class.java, ::windowsJimfs),
+            arguments(PosixFileAttributes::class.java, ::linuxJimfs),
+            arguments(PosixFileAttributes::class.java, ::osXJimfs),
         )
 
         @JvmStatic
         fun allNames(): Stream<Arguments> = Stream.of(
-            Arguments.arguments("*", 9, ::windowsJimfs),
-            Arguments.arguments("dos:*", 13, ::windowsJimfs),
-            Arguments.arguments("posix:*", 12, ::linuxJimfs),
-            Arguments.arguments("posix:*", 12, ::osXJimfs),
+            arguments("*", 9, ::windowsJimfs),
+            arguments("dos:*", 13, ::windowsJimfs),
+            arguments("posix:*", 12, ::linuxJimfs),
+            arguments("posix:*", 12, ::osXJimfs),
+        )
+
+        @JvmStatic
+        fun allFileSystems(): Stream<Arguments> = Stream.of(
+            arguments(windowsJimfs()),
+            arguments(linuxJimfs()),
+            arguments(osXJimfs()),
         )
 
         @JvmStatic
         fun posixFileSystems(): Stream<Arguments> = Stream.of(
-            Arguments.arguments(::linuxJimfs),
-            Arguments.arguments(::osXJimfs),
+            arguments(::linuxJimfs),
+            arguments(::osXJimfs),
         )
 
         @JvmStatic
         fun hiddenTestPathsWindows(): Stream<Arguments> = Stream.of(
-            Arguments.arguments("test1.txt", true),
+            arguments("test1.txt", true),
             // blank file name for a directory, directories can never be hidden
-            Arguments.arguments("", false),
+            arguments("", false),
         )
 
         @JvmStatic
         fun hiddenTestPathsPosix(): Stream<Arguments> = Stream.of(
-            Arguments.arguments(".test1.txt", true, ::linuxJimfs),
-            Arguments.arguments(".test1.txt", true, ::osXJimfs),
-            Arguments.arguments("test2.txt", false, ::linuxJimfs),
-            Arguments.arguments("test2.txt", false, ::osXJimfs),
+            arguments(".test1.txt", true, ::linuxJimfs),
+            arguments(".test1.txt", true, ::osXJimfs),
+            arguments("test2.txt", false, ::linuxJimfs),
+            arguments("test2.txt", false, ::osXJimfs),
         )
 
         @JvmStatic
         fun allFileSystemsWithCopyOption(): Stream<Arguments> = Stream.of(
-            Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::windowsJimfs),
-            Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::windowsJimfs),
-            Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::linuxJimfs),
-            Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::linuxJimfs),
-            Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::osXJimfs),
-            Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::osXJimfs),
+            arguments(StandardCopyOption.REPLACE_EXISTING, ::windowsJimfs),
+            arguments(StandardCopyOption.COPY_ATTRIBUTES, ::windowsJimfs),
+            arguments(StandardCopyOption.REPLACE_EXISTING, ::linuxJimfs),
+            arguments(StandardCopyOption.COPY_ATTRIBUTES, ::linuxJimfs),
+            arguments(StandardCopyOption.REPLACE_EXISTING, ::osXJimfs),
+            arguments(StandardCopyOption.COPY_ATTRIBUTES, ::osXJimfs),
         )
 
         @JvmStatic
         fun allFileSystemsWithMoveOption(): Stream<Arguments> = Stream.of(
-            Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::windowsJimfs),
-            Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::windowsJimfs),
-            Arguments.arguments(StandardCopyOption.ATOMIC_MOVE, ::windowsJimfs),
-            Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::linuxJimfs),
-            Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::linuxJimfs),
-            Arguments.arguments(StandardCopyOption.ATOMIC_MOVE, ::linuxJimfs),
-            Arguments.arguments(StandardCopyOption.REPLACE_EXISTING, ::osXJimfs),
-            Arguments.arguments(StandardCopyOption.COPY_ATTRIBUTES, ::osXJimfs),
-            Arguments.arguments(StandardCopyOption.ATOMIC_MOVE, ::osXJimfs),
+            arguments(StandardCopyOption.REPLACE_EXISTING, ::windowsJimfs),
+            arguments(StandardCopyOption.COPY_ATTRIBUTES, ::windowsJimfs),
+            arguments(StandardCopyOption.ATOMIC_MOVE, ::windowsJimfs),
+            arguments(StandardCopyOption.REPLACE_EXISTING, ::linuxJimfs),
+            arguments(StandardCopyOption.COPY_ATTRIBUTES, ::linuxJimfs),
+            arguments(StandardCopyOption.ATOMIC_MOVE, ::linuxJimfs),
+            arguments(StandardCopyOption.REPLACE_EXISTING, ::osXJimfs),
+            arguments(StandardCopyOption.COPY_ATTRIBUTES, ::osXJimfs),
+            arguments(StandardCopyOption.ATOMIC_MOVE, ::osXJimfs),
         )
 
         private fun ComparableSubject<FileTime>.followedFlagRulesComparedTo(
