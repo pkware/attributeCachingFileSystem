@@ -27,7 +27,7 @@ internal class FileAttributeCachingPath(
     cacheTimeout: Long = CACHE_PRESERVATION_TIME_SECONDS
 ) : ForwardingPath(delegate) {
 
-    // ExpirableCache for thisFileAttributeCachingPath a BasicFileAttributes cache
+    // ExpirableCache for this FileAttributeCachingPath instance.
     private val attributeCache = ExpirableCache<String, BasicFileAttributes?>(
         TimeUnit.SECONDS.toMillis(cacheTimeout)
     )
@@ -76,14 +76,11 @@ internal class FileAttributeCachingPath(
     }
 
     /**
-     * Copies this [FileAttributeCachingPath]s cached values to the [target]. Also runs [functionToExecute] midway
-     * through function execution to provide support to external operations such as
-     * [FileAttributeCachingFileSystemProvider.copy] and [FileAttributeCachingFileSystemProvider.move].
+     * Copies this [FileAttributeCachingPath]s cached values to the [target].
      *
      * @param target The [FileAttributeCachingPath] to copy cached attributes to.
-     * @param functionToExecute The [Runnable] function to execute midway through this function.
      */
-    fun copyCachedAttributesTo(target: FileAttributeCachingPath, functionToExecute: Runnable) {
+    fun copyCachedAttributesTo(target: FileAttributeCachingPath) {
         val delegateFileSystem = delegate.fileSystem
         val delegateProvider = delegateFileSystem.provider()
         val supportedViews = delegateFileSystem.supportedFileAttributeViews()
@@ -105,8 +102,6 @@ internal class FileAttributeCachingPath(
                 delegateProvider.readAttributes(delegate, PosixFileAttributes::class.java)
             }
         } else null
-
-        functionToExecute.run()
 
         // Can set null values here but that's okay, next time value is read as null it will be computed
         // from outside the cache.

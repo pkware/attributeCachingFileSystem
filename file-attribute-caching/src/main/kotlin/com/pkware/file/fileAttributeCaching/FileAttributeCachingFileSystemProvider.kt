@@ -93,22 +93,20 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
         val delegateSourcePath = source.asCachingPath().delegate
         val delegateTargetPath = target.asCachingPath().delegate
 
-        if (options.contains(StandardCopyOption.COPY_ATTRIBUTES)) {
-            // If we have both target and source caching paths we copy the attributes from source to target and run
-            // Files.copy(source, target, *newOptions) during copyCachedAttributesTo
-            if (source is FileAttributeCachingPath && target is FileAttributeCachingPath) {
-                // Filter out StandardCopyOption.COPY_ATTRIBUTES here because we dont want the copied file to repopulate
-                // the cache from the delegate provider/filesystem.
-                val newOptions = options.filter {
-                    it != StandardCopyOption.COPY_ATTRIBUTES
-                }.toTypedArray()
+        // If we have both target and source caching paths we copy the attributes from source to target and run
+        // Files.copy(source, target, *newOptions) during copyCachedAttributesTo
+        if (options.contains(StandardCopyOption.COPY_ATTRIBUTES) &&
+            source is FileAttributeCachingPath &&
+            target is FileAttributeCachingPath
+        ) {
+            // Filter out StandardCopyOption.COPY_ATTRIBUTES here because we dont want the copied file to repopulate
+            // the cache from the delegate provider/filesystem.
+            val newOptions = options.filter {
+                it != StandardCopyOption.COPY_ATTRIBUTES
+            }.toTypedArray()
 
-                source.copyCachedAttributesTo(target) {
-                    Files.copy(delegateSourcePath, delegateTargetPath, *newOptions)
-                }
-            } else {
-                Files.copy(delegateSourcePath, delegateTargetPath, *options)
-            }
+            source.copyCachedAttributesTo(target)
+            Files.copy(delegateSourcePath, delegateTargetPath, *newOptions)
         } else {
             // If the StandardCopyOption.COPY_ATTRIBUTES option is not selected, there is no need to cache the
             // attributes for the copied file.
@@ -133,22 +131,20 @@ internal class FileAttributeCachingFileSystemProvider : FileSystemProvider() {
         val delegateSourcePath = source.asCachingPath().delegate
         val delegateTargetPath = target.asCachingPath().delegate
 
-        if (options.contains(StandardCopyOption.COPY_ATTRIBUTES)) {
-            // If we have both target and source caching paths we copy the attributes from source to target and run
-            // Files.move(source, target, *newOptions) during copyCachedAttributesTo
-            if (source is FileAttributeCachingPath && target is FileAttributeCachingPath) {
-                // Filter out StandardCopyOption.COPY_ATTRIBUTES here because we dont want the moved file to repopulate
-                // the cache from the delegate provider/filesystem.
-                val newOptions = options.filter {
-                    it != StandardCopyOption.COPY_ATTRIBUTES
-                }.toTypedArray()
+        // If we have both target and source caching paths we copy the attributes from source to target and run
+        // Files.move(source, target, *newOptions) during copyCachedAttributesTo
+        if (options.contains(StandardCopyOption.COPY_ATTRIBUTES) &&
+            source is FileAttributeCachingPath &&
+            target is FileAttributeCachingPath
+        ) {
+            // Filter out StandardCopyOption.COPY_ATTRIBUTES here because we dont want the moved file to repopulate
+            // the cache from the delegate provider/filesystem.
+            val newOptions = options.filter {
+                it != StandardCopyOption.COPY_ATTRIBUTES
+            }.toTypedArray()
 
-                source.copyCachedAttributesTo(target) {
-                    Files.move(delegateSourcePath, delegateTargetPath, *newOptions)
-                }
-            } else {
-                Files.move(delegateSourcePath, delegateTargetPath, *options)
-            }
+            source.copyCachedAttributesTo(target)
+            Files.move(delegateSourcePath, delegateTargetPath, *newOptions)
         } else {
             // If the StandardCopyOption.COPY_ATTRIBUTES option is not selected, there is no need to cache the
             // attributes for the moved file.
