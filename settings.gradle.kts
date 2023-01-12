@@ -1,5 +1,4 @@
 include(
-    "forwarding",
     "file-attribute-caching",
 )
 

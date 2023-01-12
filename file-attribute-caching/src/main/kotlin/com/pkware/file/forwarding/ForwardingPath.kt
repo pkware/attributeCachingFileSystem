@@ -45,8 +45,8 @@ public abstract class ForwardingPath(private val delegate: Path) : Path {
     override fun endsWith(other: Path): Boolean = delegate.endsWith(other)
 
     override fun register(
-        watcher: WatchService?,
-        events: Array<out WatchEvent.Kind<*>>?,
+        watcher: WatchService,
+        events: Array<out WatchEvent.Kind<*>>,
         vararg modifiers: WatchEvent.Modifier?
     ): WatchKey = delegate.register(watcher, events, *modifiers)
 
@@ -60,7 +60,7 @@ public abstract class ForwardingPath(private val delegate: Path) : Path {
 
     override fun getParent(): Path? = delegate.parent
 
-    override fun compareTo(other: Path?): Int = delegate.compareTo(other)
+    override fun compareTo(other: Path): Int = delegate.compareTo(other)
 
     override fun getNameCount(): Int = delegate.nameCount
 

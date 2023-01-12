@@ -13,7 +13,6 @@ ksp {
 }
 
 dependencies {
-    api(project(":forwarding"))
     implementation(libs.auto.service.annotations)
     ksp(libs.auto.service.ksp)
 
@@ -21,6 +20,7 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.jimfs)
+    testImplementation(libs.mockito.kotlin)
 
     testRuntimeOnly(libs.junit.jupiter.engine)
 }
